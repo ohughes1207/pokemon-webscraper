@@ -10,6 +10,8 @@ TODO: Fix null generation for paradox pokemon
 
 This can be done by changing method for scraping method to accessing the p element and scraping the text that follows "introduced in"
 
+###################### DONE ##################
+
 ############# THIS HAS BEEN IMPLEMENTED AND BELIEVED TO BE WORKING AS EXPECTED#########
 
 TODO: Make scraping groups functional
@@ -47,6 +49,10 @@ Darmanitan
 Aegislash
 Pumpkaboo
 Gourgiest
+Deoxys forms
+Flabebe
+Floette
+Florges
 
 TODO: make method to add variant names to Zacian and Zamazenta
 
@@ -145,14 +151,15 @@ class PokemonSpider(scrapy.Spider):
         if len(t1_list)==len(variant_list):
             
             if len(total_list) < len(variant_list):
-                
-                hp_list=hp_list+hp_list
-                att_list=att_list+att_list
-                def_list=def_list+def_list
-                sp_att_list=sp_att_list+sp_att_list
-                sp_def_list=sp_def_list+sp_def_list
-                speed_list=speed_list+speed_list
-                total_list=total_list+total_list
+                for i in variant_list[1:]:
+                    
+                    hp_list=hp_list+hp_list
+                    att_list=att_list+att_list
+                    def_list=def_list+def_list
+                    sp_att_list=sp_att_list+sp_att_list
+                    sp_def_list=sp_def_list+sp_def_list
+                    speed_list=speed_list+speed_list
+                    total_list=total_list+total_list
             
             
             if len(total_list)//len(variant_list)==2:
@@ -214,13 +221,37 @@ class PokemonSpider(scrapy.Spider):
                 total=total_var
                 
                 print(pkm_var)
+                
+                if t2=='Unknown':
+                    t2=None
+                
+                
+                
+                if gen=='Generation I':
+                    gen=1
+                elif gen=='Generation II':
+                    gen=2
+                elif gen=='Generation III':
+                    gen=3
+                elif gen=='Generation IV':
+                    gen=4
+                elif gen=='Generation V':
+                    gen=5
+                elif gen=='Generation VI':
+                    gen=6
+                elif gen=='Generation VII':
+                    gen=7
+                elif gen=='Generation VIII':
+                    gen=8
+                elif gen=='Generation IX':
+                    gen=9
         
                     
                     
                     
                 yield {
                     'Pokedex Number': int(dex_n.replace('#', '')),
-                    'Pokemon': pkm_var.replace('\xa0', ' ').replace('♀', '♀').replace('♂', '♂'),
+                    'Pokemon': pkm_var.replace('\xa0', ' ').replace('♀', ' Female').replace('♂', ' Male'),
                     'Type 1': t1,
                     'Type 2': t2,
                     'Total': total,
