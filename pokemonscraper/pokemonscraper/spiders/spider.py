@@ -291,7 +291,7 @@ class PokemonSpider(scrapy.Spider):
                     
                 yield {
                     'Pokedex Number':dex_n.replace('#', ''),
-                    'Pokemon': pkm_var.replace('\xa0', ' ').replace('♀', ' Female').replace('♂', ' Male'),
+                    'Pokemon': pkm_var.replace('\xa0', ' '),
                     'Type 1': t1,
                     'Type 2': t2,
                     'Total': total,
