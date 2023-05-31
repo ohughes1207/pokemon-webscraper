@@ -39,20 +39,12 @@ TODO: Fix naming unable to deal with some unicode characters
 
 TODO: Fix outliers
 
-Castforme
-Wormadam
-Burmy
-Hippopotas
-Hippowdon
-Mega Beedrill not recognized
 Darmanitan
-Aegislash
-Pumpkaboo
-Gourgiest
-Deoxys forms
-Flabebe
-Floette
-Florges
+Pikachu
+Flabebe (unicode character error)
+
+
+
 
 TODO: make method to add variant names to Zacian and Zamazenta
 
@@ -60,6 +52,14 @@ TODO: make method to add variant names to Zacian and Zamazenta
 
 
 import scrapy
+
+def IsRegional(alist, checklist):
+    for x in alist:
+        if any(a in x for a in checklist):
+            return True
+        else:
+            pass
+    return False
 
 
 class PokemonSpider(scrapy.Spider):
@@ -82,7 +82,8 @@ class PokemonSpider(scrapy.Spider):
                     yield response.follow(pkm_link, callback= self.get_pkms)
                 else:
                     continue
-
+                
+            
 
 
     def get_pkms(self, response):
@@ -112,7 +113,7 @@ class PokemonSpider(scrapy.Spider):
         speed_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[8]/th/div[2]/text()').getall()
         
         regional_forms = ['Paldean', 'Hisuian', 'Galarian', 'Alolan']
-        alt_forms = [' Form', ' Mode', ' Build', 'Crowned', 'Hero ', ' Style', 'Family ']
+        alt_forms = [' Form', ' Mode', ' Build', 'Crowned', 'Hero ', ' Style', 'Family ', 'Normal', 'Size', 'Plumage', 'Breed', 'Cloak']
         
         total_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[9]/th/div[2]/text()').getall()
         
@@ -150,8 +151,11 @@ class PokemonSpider(scrapy.Spider):
         #This method works for most however some stats and variants need correcting, such as Cosplay Pikachu and Mega Beedrill
         if len(t1_list)==len(variant_list):
             
+            
+            #Outliers in this if statement are Darmanitan, Pikachu and Flabebe
             if len(total_list) < len(variant_list):
-                for i in variant_list[1:]:
+                for i in range(1, len(variant_list)):
+                    
                     
                     hp_list=hp_list+hp_list
                     att_list=att_list+att_list
@@ -160,19 +164,45 @@ class PokemonSpider(scrapy.Spider):
                     sp_def_list=sp_def_list+sp_def_list
                     speed_list=speed_list+speed_list
                     total_list=total_list+total_list
-            
-            
-            if len(total_list)//len(variant_list)==2:
-                hp_list=hp_list[1::2]
-                att_list=att_list[1::2]
-                def_list=def_list[1::2]
-                sp_att_list=sp_att_list[1::2]
-                sp_def_list=sp_def_list[1::2]
-                speed_list=speed_list[1::2]
-                total_list=total_list[1::2]
-            
-            elif len(total_list)>len(variant_list):
+                    
+                    if len(set(hp_list))==1 and len(set(att_list))==1 and len(set(def_list))==1 and len(set(sp_att_list))==1 and len(set(sp_def_list))==1 and len(set(speed_list))==1 and len(set(total_list))==1:
+                        print(t1_list)
+                        print(t2_list)
                 
+                        if (len(set(t1_list))==2 and len(set(t2_list))==2 and IsRegional(variant_list, regional_forms)==False) or (len(set(t1_list))==2 and len(set(t2_list))==1 and IsRegional(variant_list, regional_forms)==False):
+                            variant_list=[pkm_name]
+                        
+                    variant_list= sorted(set([x.replace('(', '').replace(')', '') for x in variant_list]), key=[x.replace('(', '').replace(')', '') for x in variant_list].index)
+                        
+            
+            elif len(total_list)//len(variant_list)==2:
+                
+                if len(set(variant_list))>=2 and any('Generation' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/h4/span/text()').getall()) and any(' onward' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/h4/span/text()').getall()):
+                    hp_list=hp_list[2:]
+                    att_list=att_list[2:]
+                    def_list=def_list[2:]
+                    sp_att_list=sp_att_list[2:]
+                    sp_def_list=sp_def_list[2:]
+                    speed_list=speed_list[2:]
+                    total_list=total_list[2:]
+                    
+                elif any('Male' and 'Female' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/h5/span/text()').getall()):
+                    t1_list=[t1_list[0], t1_list[0]]
+                    t2_list=[t2_list[0], t2_list[0]]
+                    variant_list=[pkm_name+' Male', pkm_name+ ' Female']
+                    
+                    
+                else:
+                    hp_list=hp_list[1::2]
+                    att_list=att_list[1::2]
+                    def_list=def_list[1::2]
+                    sp_att_list=sp_att_list[1::2]
+                    sp_def_list=sp_def_list[1::2]
+                    speed_list=speed_list[1::2]
+                    total_list=total_list[1::2]
+                
+            elif len(total_list)>len(variant_list):
+
                 hp_list=hp_list[1:]
                 att_list=att_list[1:]
                 def_list=def_list[1:]
@@ -180,6 +210,12 @@ class PokemonSpider(scrapy.Spider):
                 sp_def_list=sp_def_list[1:]
                 speed_list=speed_list[1:]
                 total_list=total_list[1:]
+            
+            else:
+                dex_n=dex_n
+
+                
+            #variant_list= list(set([x.replace('(', '').replace(')', '') for x in variant_list]))
                 
             for pkm_var, hp_var, att_var, def_var, sp_att_var, sp_def_var, speed_var, total_var, t1, t2 in zip(variant_list, hp_list, att_list, def_list, sp_att_list, sp_def_list, speed_list, total_list, t1_list, t2_list):
                 
@@ -222,9 +258,13 @@ class PokemonSpider(scrapy.Spider):
                 
                 print(pkm_var)
                 
+                
+                
+                
+                
+                
                 if t2=='Unknown':
                     t2=None
-                
                 
                 
                 if gen=='Generation I':
@@ -250,7 +290,7 @@ class PokemonSpider(scrapy.Spider):
                     
                     
                 yield {
-                    'Pokedex Number': int(dex_n.replace('#', '')),
+                    'Pokedex Number':dex_n.replace('#', ''),
                     'Pokemon': pkm_var.replace('\xa0', ' ').replace('♀', ' Female').replace('♂', ' Male'),
                     'Type 1': t1,
                     'Type 2': t2,
@@ -265,72 +305,32 @@ class PokemonSpider(scrapy.Spider):
                     'Group': group,
                     }
             
-        '''
-        elif len(t1_list)==len(variant_list):
-            
-            for pkm_var, hp_var, att_var, def_var, sp_att_var, sp_def_var, speed_var, total_var, t1, t2 in zip(variant_list, hp_list, att_list, def_list, sp_att_list, sp_def_list, speed_list, total_list, t1_list, t2_list):
-                
-                group = []
-                
-                if 'Legendary Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
-                    group.append('Legendary')
-                elif 'Mythical Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
-                    group.append('Mythical')
-                elif 'Ultra Beasts' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[3]/a/text()').getall():
-                    group.append('Ultra Beast')
-                elif 'Paradox Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
-                    group.append('Paradox')
-                
-                if t1=='Unknown':
-                    t1=t1_list[0]
-                    t2=t2_list[0]
-                    
-                if pkm_var!=pkm_name:
-                    if any(x in pkm_var for x in alt_forms):
-                        pkm_var = pkm_name+' '+pkm_var
-                    
-                    
-                if 'Mega ' in pkm_var:
-                    group.append('Mega')
-                if any(x in pkm_var for x in regional_forms):
-                    group.append('Regional Form')
-                if len(group)==0:
-                    group.append('Standard')
-                    
-                
-                hp=hp_var
-                att=att_var
-                defense=def_var
-                sp_att=sp_att_var
-                sp_def=sp_def_var
-                speed=speed_var
-                total=total_var
-    
-                
-                
-                
-                yield {
-                    'Pokedex Number': int(dex_n.replace('#', '')),
-                    'Pokemon': pkm_var,
-                    'Type 1': t1,
-                    'Type 2': t2,
-                    'Total': total,
-                    'HP': hp,
-                    'Attack': att,
-                    'Defense': defense,
-                    'Sp. Atk': sp_att,
-                    'Sp. Def': sp_def,
-                    'Speed': speed,
-                    'Generation': gen,
-                    'Group': group,
-                    }
-        '''
-            
-            
-        '''
+        
         else:
+            #variant_list= response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table[2]/tbody/tr[1]/td/table/tbody/tr[2]/td/table/tbody/tr/td/a/@title').getall()
+            print(variant_list)
+            print(len(set(variant_list)), len(variant_list))
+            if len(variant_list)-len(set(variant_list))>1:
+                for i in range(1, len([x for x in variant_list if pkm_name in x])):
+                    variant_list[i]= variant_list[i]+' ' + variant_list[i+1]
+                    variant_list.remove(variant_list[i+1])
+                variant_list= sorted(set([x for x in variant_list]), key=variant_list.index)
             
-            for variant, hp_var, att_var, def_var, sp_att_var, sp_def_var, speed_var, total_var in zip(variant_list, hp_list, att_list, def_list, sp_att_list, sp_def_list, speed_list, total_list):
+            print(variant_list)
+            print(total_list)
+            print(t1_list)
+            
+            if len(total_list) < len(variant_list):
+                for i in range(0, (len(variant_list)-len(total_list))):
+                    total_list.append(total_list[1])
+                    hp_list.append(hp_list[1])
+                    att_list.append(att_list[1])
+                    def_list.append(def_list[1])
+                    sp_att_list.append(sp_att_list[1])
+                    sp_def_list.append(sp_def_list[1])
+                    speed_list.append(speed_list[1])
+                    
+            for variant, hp_var, att_var, def_var, sp_att_var, sp_def_var, speed_var, total_var, t1, t2 in zip(variant_list, hp_list, att_list, def_list, sp_att_list, sp_def_list, speed_list, total_list, t1_list, t2_list):
                 
                 group = []
                 
@@ -360,10 +360,6 @@ class PokemonSpider(scrapy.Spider):
                     t2=t2_list[0]
                 elif variant!=pkm_name:
                     pkm_var=variant
-                    if any(x in pkm_var for x in alt_forms):
-                        pkm_var = pkm_name+' '+pkm_var
-                    t1=t1_list
-                    t2=t2_list
                 
                 #Used to check if all forms of a Pokemon have the same type and if true sets the correct type for all forms of the pokemon
                 if t1_list[1:]==t2_list[1:]:
@@ -387,12 +383,34 @@ class PokemonSpider(scrapy.Spider):
                 speed=speed_var
                 total=total_var
     
+                if t2=='Unknown':
+                    t2=None
                 
+                
+                if gen=='Generation I':
+                    gen=1
+                elif gen=='Generation II':
+                    gen=2
+                elif gen=='Generation III':
+                    gen=3
+                elif gen=='Generation IV':
+                    gen=4
+                elif gen=='Generation V':
+                    gen=5
+                elif gen=='Generation VI':
+                    gen=6
+                elif gen=='Generation VII':
+                    gen=7
+                elif gen=='Generation VIII':
+                    gen=8
+                elif gen=='Generation IX':
+                    gen=9
+    
                 
                 
                 yield {
                     'Pokedex Number': int(dex_n.replace('#', '')),
-                    'Pokemon': pkm_var,
+                    'Pokemon': pkm_var.replace('(', '').replace(')', ''),
                     'Type 1': t1,
                     'Type 2': t2,
                     'Total': total,
@@ -405,4 +423,3 @@ class PokemonSpider(scrapy.Spider):
                     'Generation': gen,
                     'Group': group,
                     }
-                '''
