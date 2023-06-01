@@ -39,7 +39,8 @@ TODO: Fix outliers
 
 Darmanitan
 Pikachu
-Flabebe (unicode character error)
+Pumpkaboo
+Gourgeist
 
 ######## This will be done through a Jupyter notebook while cleaning and preparing the data #######
 
