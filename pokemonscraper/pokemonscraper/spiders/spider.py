@@ -34,8 +34,6 @@ TODO: Come up with method to remove 'Unknowns' if type list length exceeds the v
 
 ################ Done ##############
 
-TODO: Fix naming unable to deal with some unicode characters
-
 
 TODO: Fix outliers
 
@@ -43,10 +41,14 @@ Darmanitan
 Pikachu
 Flabebe (unicode character error)
 
-
+######## This will be done through a Jupyter notebook while cleaning and preparing the data #######
 
 
 TODO: make method to add variant names to Zacian and Zamazenta
+
+
+####### Done #######
+
 
 '''
 
@@ -118,30 +120,10 @@ class PokemonSpider(scrapy.Spider):
         total_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[9]/th/div[2]/text()').getall()
         
         
-        '''
-        if len(variant_list)==1:
-            hp_list=hp_list[0]
-            att_list=att_list[0]
-            def_list=def_list[0]
-            sp_att_list=sp_att_list[-1]
-            sp_def_list=sp_def_list[-1]
-            speed_list=speed_list[-1]
-            total_list=total_list[-1]
-        '''
-        
-        '''
-        if len(total_list) > len(variant_list):          
-            variant_list = [pkm_name+' (REQUIRES MANUAL ATTENTION)' for x in total_list]
-        '''
-        
         print(variant_list)
                     
         
         
-        '''
-        form_forms = [x for x in variant_list if pkm_name not in x]
-        print('#################################################',  '\n', form_forms)
-        '''
         if len(t1_list) > len(variant_list):
             t1_list=t1_list[0:len(variant_list)]
         if len(t2_list) > len(variant_list):
