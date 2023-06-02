@@ -135,7 +135,7 @@ class PokemonSpider(scrapy.Spider):
         if len(t1_list)==len(variant_list):
             
             
-            #Outliers in this if statement are Darmanitan, Pikachu and Flabebe
+            #Outliers in this if statement are Darmanitan and Pikachu
             if len(total_list) < len(variant_list):
                 for i in range(1, len(variant_list)):
                     
