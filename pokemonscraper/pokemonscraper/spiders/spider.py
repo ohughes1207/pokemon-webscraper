@@ -56,6 +56,7 @@ TODO: make method to add variant names to Zacian and Zamazenta
 
 import scrapy
 
+#Used to check if any string in the checklist paramater (a list of strings to check for) is in any element of a given list
 def IsRegional(alist, checklist):
     for x in alist:
         if any(a in x for a in checklist):
@@ -70,44 +71,48 @@ class PokemonSpider(scrapy.Spider):
     start_urls = ['https://bulbapedia.bulbagarden.net/wiki/List_of_Pok%C3%A9mon_by_National_Pok%C3%A9dex_number']
     
     def parse(self, response):
+        #Extracts the paths of all tables with the table.roundy selector into a list
         tables = response.css('table.roundy')
         
+        #loop through the the list of tables to get all pokemon in each table
         for table in tables:
+            #Get the elements for all pokemon inside the table (skip the first element to ignore the labels in the tables)
             all_pkm = table.xpath('tbody/tr')[1:]
-            #all_pkm = [all_pkm[0]]
+            #Loop through the list for all pokemon
             for pkm in all_pkm:
-
+                #Get the Pokedex Number for the pokemon
                 dex_n = pkm.xpath('td[1]//text()').get()
-                #print(dex_n)
+                #Alternate forms and Regional forms do not have a pokedex number in their element path and those with a pokedex number of #0000 are leaked pokemon so we can ignore them
+                #We will get the Alternate and regional forms when getting data for the primary pokemon
                 if dex_n is not None and dex_n!='#0000':
                     print(dex_n)
+                    #href link to get to the primary pokemons main page
                     pkm_link=pkm.xpath('td[3]/a/@href').get()
+                    #follow the link and use the get_pkms function to get the data
                     yield response.follow(pkm_link, callback= self.get_pkms)
                 else:
                     continue
                 
-            
-
-
+    #
     def get_pkms(self, response):
-        
+        #Get the generation the pokemon was introduced in
         gen= [x for x in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall() if 'Generation' in x][0]
-        #print(gen)
+        #Get the Pokedex number again as the previous pokedex number was just to check if the iteration was a regional form or a leaked pokemon
         dex_n = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table[2]/tbody/tr[1]/td/table/tbody/tr[1]/th/big/big/a/span/text()').get()
-        #print(dex_n)
+        #The name of the primary pokemon
         pkm_name = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table[2]/tbody/tr[1]/td/table/tbody/tr[1]/td/table/tbody/tr/td[1]/big/big/b/text()').get()
-        #print(pkm_name)
+        #When a pokemon has multiple forms they can have a different combination of types so we can get their types into a list to loop through
         t1_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table[2]/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr/td[1]/a/span/b/text()').getall()
-        #print(t1_main)
         t2_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table[2]/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr/td[2]/a/span/b/text()').getall()
-        #print(t2_main)
         
+        #Get all existing variant of the pokemon (including the primary form of the pokemon, only gets primary form of the pokemon also if alternate variants exist)
         variant_list = [x for x in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table[2]/tbody/tr[1]/td/table/tbody/tr[2]/td/table/tbody/tr/td/small/text()').getall() if 'Gigantamax' not in x]# if pkm_name in x] #and 'Gigantamax' not in x]
         
+        #If there are no alternate form of the pokemon then length of the variant_list is 0 so we can reassign it like so
         if len(variant_list)==0:
             variant_list=[pkm_name]
         
-        
+        #Extract all stats of the pokemon into a list that can be found on the page
         hp_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[3]/th/div[2]/text()').getall()
         att_list =  response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[4]/th/div[2]/text()').getall()
         def_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[5]/th/div[2]/text()').getall()
@@ -115,9 +120,11 @@ class PokemonSpider(scrapy.Spider):
         sp_def_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[7]/th/div[2]/text()').getall()
         speed_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[8]/th/div[2]/text()').getall()
         
+        #Lists containing keywords for regional and alternate forms that may appear in the names of Pokemon
         regional_forms = ['Paldean', 'Hisuian', 'Galarian', 'Alolan']
         alt_forms = [' Form', ' Mode', ' Build', 'Crowned', 'Hero ', ' Style', 'Family ', 'Normal', 'Size', 'Plumage', 'Breed', 'Cloak']
         
+        #Extract the total stats for all the pokemon
         total_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[9]/th/div[2]/text()').getall()
         
         
@@ -125,13 +132,13 @@ class PokemonSpider(scrapy.Spider):
                     
         
         
+        #Truncate list of types incase they are longer than the list of variants
         if len(t1_list) > len(variant_list):
             t1_list=t1_list[0:len(variant_list)]
         if len(t2_list) > len(variant_list):
             t2_list=t2_list[0:len(variant_list)]
         
 
-        #This method works for most however some stats and variants need correcting, such as Cosplay Pikachu and Mega Beedrill
         if len(t1_list)==len(variant_list):
             
             
@@ -148,6 +155,7 @@ class PokemonSpider(scrapy.Spider):
                     speed_list=speed_list+speed_list
                     total_list=total_list+total_list
                     
+                    #len(set()) checks for how many unique values there are in the list
                     if len(set(hp_list))==1 and len(set(att_list))==1 and len(set(def_list))==1 and len(set(sp_att_list))==1 and len(set(sp_def_list))==1 and len(set(speed_list))==1 and len(set(total_list))==1:
                         print(t1_list)
                         print(t2_list)
@@ -168,7 +176,8 @@ class PokemonSpider(scrapy.Spider):
                     sp_def_list=sp_def_list[2:]
                     speed_list=speed_list[2:]
                     total_list=total_list[2:]
-                    
+                #Sometimes the male and female versions of pokemon have different stats, this elif statement checks if this is the case and makes corrections to the type lists
+                #And adds suffixes to the names in variant list differentiate them
                 elif any('Male' and 'Female' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/h5/span/text()').getall()):
                     t1_list=[t1_list[0], t1_list[0]]
                     t2_list=[t2_list[0], t2_list[0]]
@@ -198,15 +207,16 @@ class PokemonSpider(scrapy.Spider):
                 dex_n=dex_n
 
                 
-            #variant_list= list(set([x.replace('(', '').replace(')', '') for x in variant_list]))
                 
             for pkm_var, hp_var, att_var, def_var, sp_att_var, sp_def_var, speed_var, total_var, t1, t2 in zip(variant_list, hp_list, att_list, def_list, sp_att_list, sp_def_list, speed_list, total_list, t1_list, t2_list):
                 
                     
                 group = []
-                    
+                #Checks if there is any mention of the pokemon being part of these groups and adds them to the group list
                 if any('Legendary' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall()):
                         group.append('Legendary')
+                elif any('pseudo-legendary' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall()):
+                        group.append('Pseudo-legendary')
                 elif any('Mythical' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall()):
                         group.append('Mythical')
                 elif any('Ultra Beasts' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[3]/a/text()').getall()):
@@ -214,6 +224,7 @@ class PokemonSpider(scrapy.Spider):
                 if any('Paradox' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall()):
                         group.append('Paradox')
                     
+
                 if t1=='Unknown':
                     t1=t1_list[0]
                     t2=t2_list[0]
@@ -222,11 +233,13 @@ class PokemonSpider(scrapy.Spider):
                     if any(x in pkm_var for x in alt_forms):
                         pkm_var = pkm_name+' '+pkm_var
                         
-                        
+                #Checks if the pokemon is a Mega version
                 if 'Mega ' in pkm_var:
                         group.append('Mega')
+                #Checks if any of the keywords in the regional_forms list exist in the pokemons name
                 if any(x in pkm_var for x in regional_forms):
                         group.append('Regional Form')
+                #If len(group) is 0 at this point then the pokemon is a standard pokemon that does not belong to any special group
                 if len(group)==0:
                         group.append('Standard')
                         
@@ -245,11 +258,11 @@ class PokemonSpider(scrapy.Spider):
                 
                 
                 
-                
+                #if a pokemon does not have a second type it will be a string wiith 'Unknown' this checks for that and makes it None (keep in mind this is not a string)
                 if t2=='Unknown':
                     t2=None
                 
-                
+                #Converts the generation from string into integer
                 if gen=='Generation I':
                     gen=1
                 elif gen=='Generation II':
@@ -271,7 +284,7 @@ class PokemonSpider(scrapy.Spider):
         
                     
                     
-                    
+                #yield the stats of the pokemon
                 yield {
                     'Pokedex Number':dex_n.replace('#', ''),
                     'Pokemon': pkm_var.replace('\xa0', ' '),
