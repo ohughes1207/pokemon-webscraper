@@ -10,4 +10,4 @@ A custom built web scraper to collect data of all existing Pokemon and create a 
 2. Run the spider by executing the command ``scrapy crawl pokemonscraper -O pokemon.csv`` from the ``/PokedexApp/pokemonscraper`` directory
 3. Clean and correct the data following the methods used in ``data_cleaning.ipynb``
 
-This results in a cleaned dataset of all pokemon as of writing and believed to be no more errors from the ones corrected in the 3rd step.
+This results in a cleaned dataset of all Pokemon as of writing and believed to be no more errors from the ones corrected in the 3rd step.
