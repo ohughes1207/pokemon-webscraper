@@ -137,7 +137,7 @@ class PokemonSpider(scrapy.Spider):
         total_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[9]/th/div[2]/text()').getall()
         
         while len(img_list) < len(set(variant_list)):
-            img_list.append(img_list[-1])
+            img_list=img_list.append(img_list[-1])
 
 
         print(variant_list)
@@ -289,11 +289,11 @@ class PokemonSpider(scrapy.Spider):
                 sp_def=sp_def_var
                 speed=speed_var
                 total=total_var
+                dex_n=dex_n.replace('#', '')
                 
                 print(pkm_var)
                 
-                
-                
+
                 
                 
                 #if a pokemon does not have a second type it will be a string wiith 'Unknown' this checks for that and makes it None (keep in mind this is not a string)
@@ -321,10 +321,16 @@ class PokemonSpider(scrapy.Spider):
                     gen=9
 
 
+
+                yield Request('https:'+img_url, callback=self.parse_image, meta={'dex_n': dex_n, 'var_name': pkm_var})
+
+
+
+
                     
                 #yield the stats of the pokemon
                 yield {
-                    'Pokedex Number':dex_n.replace('#', ''),
+                    'Pokedex Number':dex_n,
                     'Base Pokemon': pkm_name,
                     'Variant Name': pkm_var,
                     'Type 1': t1,
@@ -503,9 +509,10 @@ class PokemonSpider(scrapy.Spider):
                     #'img_name': Filename
                     }
 
+
     def parse_image(self, response):
 
-        dex_n = response.meta['pokedex_num']
+        dex_n = response.meta['dex_n']
         var_name = response.meta['var_name']
 
         if ':' in var_name:
@@ -513,7 +520,7 @@ class PokemonSpider(scrapy.Spider):
 
         filename = f'{dex_n}_{var_name}.jpg'
 
-        image_path = './imgs/'+filename
+        image_path = './img/'+filename
 
         with open(image_path, 'wb') as f:
             f.write(response.body)
@@ -528,4 +535,3 @@ class PokemonSpider(scrapy.Spider):
         }
 
         yield image_data
-
