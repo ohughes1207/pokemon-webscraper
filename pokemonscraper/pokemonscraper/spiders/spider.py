@@ -127,7 +127,7 @@ class PokemonSpider(scrapy.Spider):
         sp_att_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[6]/th/div[2]/text()').getall()
         sp_def_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[7]/th/div[2]/text()').getall()
         speed_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[8]/th/div[2]/text()').getall()
-        img_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table[2]/tbody/tr[1]/td/table/tbody/tr[2]/td/table/tbody/tr/td/a[@class="image"]/img/@src').getall()
+        img_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table[2]/tbody/tr[1]/td/table/tbody/tr[2]/td/table/tbody/tr/td/a[@class="image"]/@href').getall()
         
         #Lists containing keywords for regional and alternate forms that may appear in the names of Pokemon
         regional_forms = ['Paldean', 'Hisuian', 'Galarian', 'Alolan']
@@ -320,9 +320,11 @@ class PokemonSpider(scrapy.Spider):
                 elif gen=='Generation IX':
                     gen=9
 
+                #print(response.follow(img_url))
 
-
-                yield Request('https:'+img_url, callback=self.parse_image, meta={'dex_n': dex_n, 'var_name': pkm_var})
+                #yield Request(img_url, callback=self.parse_image, meta={'dex_n': dex_n, 'var_name': pkm_var})
+                yield response.follow(img_url, callback=self.follow_image, meta={'dex_n': dex_n, 'var_name': pkm_var})
+                #yield Request(response.urljoin(img_url), callback=self.parse_image, meta={'dex_n': dex_n, 'var_name': pkm_var})
 
 
 
@@ -350,7 +352,7 @@ class PokemonSpider(scrapy.Spider):
                     'Ultrabeast': UB,
                     'Regional Form': Reg,
                     'Mythical': Myth,
-                    #'img_name': Filename
+                    #'img_name': img_data['filename']
                     }
             
         
@@ -510,7 +512,16 @@ class PokemonSpider(scrapy.Spider):
                     }
 
 
+    def follow_image(self, response):
+
+        dex_n = response.meta['dex_n']
+        pkm_var = response.meta['var_name']
+
+        img_href = response.css('#file > a:nth-child(1)').attrib['href']
+        yield Request('https:'+img_href, callback=self.parse_image, meta={'dex_n': dex_n, 'var_name': pkm_var})
+
     def parse_image(self, response):
+        print('ksjandkjasndkjandsajkn', response.url)
 
         dex_n = response.meta['dex_n']
         var_name = response.meta['var_name']
@@ -518,7 +529,7 @@ class PokemonSpider(scrapy.Spider):
         if ':' in var_name:
             var_name=var_name.replace(':', '')
 
-        filename = f'{dex_n}_{var_name}.jpg'
+        filename = f'{dex_n}_{var_name}.png'
 
         image_path = './img/'+filename
 
@@ -534,4 +545,4 @@ class PokemonSpider(scrapy.Spider):
             'filename': filename
         }
 
-        yield image_data
+        return image_data
