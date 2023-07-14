@@ -70,14 +70,14 @@ def IsRegional(alist, checklist):
 class PokemonSpider(scrapy.Spider):
     name = 'pokemonscraper'
     start_urls = ['https://bulbapedia.bulbagarden.net/wiki/List_of_Pok%C3%A9mon_by_National_Pok%C3%A9dex_number']
-
+    '''
     custom_settings = {
         'ITEM_PIPELINES': {
             'scrapy.pipelines.images.ImagesPipeline': 1
         },
         'IMAGES_STORE': './img/'
     }
-    
+    '''
     def parse(self, response):
         #Extracts the paths of all tables with the table.roundy selector into a list
         tables = response.css('table.roundy')
@@ -221,46 +221,24 @@ class PokemonSpider(scrapy.Spider):
                 
                 
             for pkm_var, hp_var, att_var, def_var, sp_att_var, sp_def_var, speed_var, total_var, t1, t2, img_url in zip(variant_list, hp_list, att_list, def_list, sp_att_list, sp_def_list, speed_list, total_list, t1_list, t2_list, img_list):
-                
+                Leg = False
+                Myth = False
+                UB = False
+                Para = False
+                Pseudo = False               
                     
                 
                 #Checks if there is any mention of the pokemon being part of these groups and sets them to true
                 if 'Legendary Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
                     Leg = True
-                    Myth = False
-                    UB = False
-                    Para = False
-                    Pseudo = False
                 elif 'Mythical Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
-                    Leg = False
                     Myth = True
-                    UB = False
-                    Para = False
-                    Pseudo = False
                 elif 'Ultra Beasts' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[3]/a/text()').getall():
-                    Leg = False
-                    Myth = False
                     UB = True
-                    Para = False
-                    Pseudo = False
                 elif 'Paradox Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
-                    Leg = False
-                    Myth = False
-                    UB = False
                     Para = True
-                    Pseudo = False
                 elif 'pseudo-legendary' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
-                    Leg = False
-                    Myth = False
-                    UB = False
-                    Para = False
                     Pseudo = True
-                else:
-                    Leg = False
-                    Myth = False
-                    UB = False
-                    Para = False
-                    Pseudo = False
 
                 if t1=='Unknown':
                     t1=t1_list[0]
@@ -290,11 +268,8 @@ class PokemonSpider(scrapy.Spider):
                 speed=speed_var
                 total=total_var
                 dex_n=dex_n.replace('#', '')
-                
-                print(pkm_var)
-                
-
-                
+                filename = self.gen_filename(dex_n, pkm_var)
+                                
                 
                 #if a pokemon does not have a second type it will be a string wiith 'Unknown' this checks for that and makes it None (keep in mind this is not a string)
                 if t2=='Unknown':
@@ -320,14 +295,8 @@ class PokemonSpider(scrapy.Spider):
                 elif gen=='Generation IX':
                     gen=9
 
-                #print(response.follow(img_url))
 
-                #yield Request(img_url, callback=self.parse_image, meta={'dex_n': dex_n, 'var_name': pkm_var})
-                yield response.follow(img_url, callback=self.follow_image, meta={'dex_n': dex_n, 'var_name': pkm_var})
-                #yield Request(response.urljoin(img_url), callback=self.parse_image, meta={'dex_n': dex_n, 'var_name': pkm_var})
-
-
-
+                yield response.follow(img_url, callback=self.follow_image, meta={'filename': filename})
 
                     
                 #yield the stats of the pokemon
@@ -352,7 +321,7 @@ class PokemonSpider(scrapy.Spider):
                     'Ultrabeast': UB,
                     'Regional Form': Reg,
                     'Mythical': Myth,
-                    #'img_name': img_data['filename']
+                    'img_name': filename
                     }
             
         
@@ -382,43 +351,24 @@ class PokemonSpider(scrapy.Spider):
                     
             for variant, hp_var, att_var, def_var, sp_att_var, sp_def_var, speed_var, total_var, t1, t2, img_url in zip(variant_list, hp_list, att_list, def_list, sp_att_list, sp_def_list, speed_list, total_list, t1_list, t2_list, img_list):
                 
+                Leg = False
+                Myth = False
+                UB = False
+                Para = False
+                Pseudo = False               
+                    
                 
+                #Checks if there is any mention of the pokemon being part of these groups and sets them to true
                 if 'Legendary Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
                     Leg = True
-                    Myth = False
-                    UB = False
-                    Para = False
-                    Pseudo = False
                 elif 'Mythical Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
-                    Leg = False
                     Myth = True
-                    UB = False
-                    Para = False
-                    Pseudo = False
                 elif 'Ultra Beasts' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[3]/a/text()').getall():
-                    Leg = False
-                    Myth = False
                     UB = True
-                    Para = False
-                    Pseudo = False
                 elif 'Paradox Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
-                    Leg = False
-                    Myth = False
-                    UB = False
                     Para = True
-                    Pseudo = False
                 elif 'pseudo-legendary' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
-                    Leg = False
-                    Myth = False
-                    UB = False
-                    Para = False
                     Pseudo = True
-                else:
-                    Leg = False
-                    Myth = False
-                    UB = False
-                    Para = False
-                    Pseudo = False
                 
                 
                 
@@ -461,10 +411,12 @@ class PokemonSpider(scrapy.Spider):
                 sp_def=sp_def_var
                 speed=speed_var
                 total=total_var
-    
+                dex_n=dex_n.replace('#', '')
+                filename = self.gen_filename(dex_n, pkm_var)
+                                
+                
                 if t2=='Unknown':
                     t2=None
-                
                 
                 if gen=='Generation I':
                     gen=1
@@ -486,9 +438,11 @@ class PokemonSpider(scrapy.Spider):
                     gen=9
 
 
-                
+                yield response.follow(img_url, callback=self.follow_image, meta={'filename': filename})
+
+                    
                 yield {
-                    'Pokedex Number':dex_n.replace('#', ''),
+                    'Pokedex Number':dex_n,
                     'Base Pokemon': pkm_name,
                     'Variant Name': pkm_var,
                     'Type 1': t1,
@@ -508,41 +462,23 @@ class PokemonSpider(scrapy.Spider):
                     'Ultrabeast': UB,
                     'Regional Form': Reg,
                     'Mythical': Myth,
-                    #'img_name': Filename
+                    'img_name': filename
                     }
 
+    def gen_filename(self, dex, var):
+        var = var.replace(':', '')
+        filename = f'{dex}_{var}.png'
+        return filename
 
     def follow_image(self, response):
-
-        dex_n = response.meta['dex_n']
-        pkm_var = response.meta['var_name']
-
+        filename = response.meta['filename']
         img_href = response.css('#file > a:nth-child(1)').attrib['href']
-        yield Request('https:'+img_href, callback=self.parse_image, meta={'dex_n': dex_n, 'var_name': pkm_var})
+        yield Request('https:'+img_href, callback=self.parse_image, meta={'filename': filename})
 
     def parse_image(self, response):
-        print('ksjandkjasndkjandsajkn', response.url)
-
-        dex_n = response.meta['dex_n']
-        var_name = response.meta['var_name']
-
-        if ':' in var_name:
-            var_name=var_name.replace(':', '')
-
-        filename = f'{dex_n}_{var_name}.png'
+        filename = response.meta['filename']
 
         image_path = './img/'+filename
 
         with open(image_path, 'wb') as f:
             f.write(response.body)
-
-        image_data = {
-            'url': response.url,
-            'path': image_path,
-            'checksum': None,
-            'dex_n': dex_n,
-            'var_name': var_name,
-            'filename': filename
-        }
-
-        return image_data
