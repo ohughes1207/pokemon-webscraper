@@ -1,6 +1,4 @@
-# PokedexApp
-
-## pokemonscraper
+# pokemonscraper
 
 A custom built web scraper to collect data of all existing Pokemon and create a dataset which will be used in the creation of my Pokedex App.
 
