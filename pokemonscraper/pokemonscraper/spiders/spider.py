@@ -55,6 +55,7 @@ TODO: make method to add variant names to Zacian and Zamazenta
 
 
 import scrapy
+from scrapy import Request
 
 #Used to check if any string in the checklist paramater (a list of strings to check for) is in any element of a given list
 def IsRegional(alist, checklist):
@@ -69,7 +70,14 @@ def IsRegional(alist, checklist):
 class PokemonSpider(scrapy.Spider):
     name = 'pokemonscraper'
     start_urls = ['https://bulbapedia.bulbagarden.net/wiki/List_of_Pok%C3%A9mon_by_National_Pok%C3%A9dex_number']
-    
+    '''
+    custom_settings = {
+        'ITEM_PIPELINES': {
+            'scrapy.pipelines.images.ImagesPipeline': 1
+        },
+        'IMAGES_STORE': './img/'
+    }
+    '''
     def parse(self, response):
         #Extracts the paths of all tables with the table.roundy selector into a list
         tables = response.css('table.roundy')
@@ -119,6 +127,7 @@ class PokemonSpider(scrapy.Spider):
         sp_att_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[6]/th/div[2]/text()').getall()
         sp_def_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[7]/th/div[2]/text()').getall()
         speed_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[8]/th/div[2]/text()').getall()
+        img_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table[2]/tbody/tr[1]/td/table/tbody/tr[2]/td/table/tbody/tr/td/a[@class="image"]/@href').getall()
         
         #Lists containing keywords for regional and alternate forms that may appear in the names of Pokemon
         regional_forms = ['Paldean', 'Hisuian', 'Galarian', 'Alolan']
@@ -127,7 +136,10 @@ class PokemonSpider(scrapy.Spider):
         #Extract the total stats for all the pokemon
         total_list = response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/table/tbody/tr[9]/th/div[2]/text()').getall()
         
-        
+        while len(img_list) < len(set(variant_list)):
+            img_list=img_list.append(img_list[-1])
+
+
         print(variant_list)
                     
         
@@ -208,22 +220,25 @@ class PokemonSpider(scrapy.Spider):
 
                 
                 
-            for pkm_var, hp_var, att_var, def_var, sp_att_var, sp_def_var, speed_var, total_var, t1, t2 in zip(variant_list, hp_list, att_list, def_list, sp_att_list, sp_def_list, speed_list, total_list, t1_list, t2_list):
+            for pkm_var, hp_var, att_var, def_var, sp_att_var, sp_def_var, speed_var, total_var, t1, t2, img_url in zip(variant_list, hp_list, att_list, def_list, sp_att_list, sp_def_list, speed_list, total_list, t1_list, t2_list, img_list):
+                Leg = False
+                Myth = False
+                UB = False
+                Para = False
+                Pseudo = False               
+                    
                 
-                    
-                group = []
-                #Checks if there is any mention of the pokemon being part of these groups and adds them to the group list
-                if any('Legendary' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall()):
-                        group.append('Legendary')
-                elif any('pseudo-legendary' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall()):
-                        group.append('Pseudo-legendary')
-                elif any('Mythical' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall()):
-                        group.append('Mythical')
-                elif any('Ultra Beasts' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[3]/a/text()').getall()):
-                        group.append('Ultra Beast')
-                if any('Paradox' in s for s in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall()):
-                        group.append('Paradox')
-                    
+                #Checks if there is any mention of the pokemon being part of these groups and sets them to true
+                if 'Legendary Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall() or 'Legendary' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
+                    Leg = True
+                if 'Mythical Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
+                    Myth = True
+                if 'Ultra Beasts' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[3]/a/text()').getall():
+                    UB = True
+                if 'Paradox Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall() or 'Paradox' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
+                    Para = True
+                if 'pseudo-legendary Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
+                    Pseudo = True
 
                 if t1=='Unknown':
                     t1=t1_list[0]
@@ -235,13 +250,14 @@ class PokemonSpider(scrapy.Spider):
                         
                 #Checks if the pokemon is a Mega version
                 if 'Mega ' in pkm_var:
-                        group.append('Mega')
+                    Mega = True
+                else:
+                    Mega = False
                 #Checks if any of the keywords in the regional_forms list exist in the pokemons name
                 if any(x in pkm_var for x in regional_forms):
-                        group.append('Regional Form')
-                #If len(group) is 0 at this point then the pokemon is a standard pokemon that does not belong to any special group
-                if len(group)==0:
-                        group.append('Standard')
+                    Reg = True
+                else:
+                    Reg = False
                         
                     
                 hp=hp_var
@@ -251,12 +267,9 @@ class PokemonSpider(scrapy.Spider):
                 sp_def=sp_def_var
                 speed=speed_var
                 total=total_var
-                
-                print(pkm_var)
-                
-                
-                
-                
+                dex_n=dex_n.replace('#', '')
+                filename = self.gen_filename(dex_n, pkm_var)
+                                
                 
                 #if a pokemon does not have a second type it will be a string wiith 'Unknown' this checks for that and makes it None (keep in mind this is not a string)
                 if t2=='Unknown':
@@ -281,13 +294,16 @@ class PokemonSpider(scrapy.Spider):
                     gen=8
                 elif gen=='Generation IX':
                     gen=9
-        
-                    
+
+
+                yield response.follow(img_url, callback=self.follow_image, meta={'filename': filename})
+
                     
                 #yield the stats of the pokemon
                 yield {
-                    'Pokedex Number':dex_n.replace('#', ''),
-                    'Pokemon': pkm_var.replace('\xa0', ' '),
+                    'Pokedex Number':dex_n,
+                    'Base Pokemon': pkm_name,
+                    'Variant Name': pkm_var,
                     'Type 1': t1,
                     'Type 2': t2,
                     'Total': total,
@@ -298,7 +314,14 @@ class PokemonSpider(scrapy.Spider):
                     'Sp. Def': sp_def,
                     'Speed': speed,
                     'Generation': gen,
-                    'Group': group,
+                    'Mega': Mega,
+                    'Paradox': Para,
+                    'Legendary': Leg,
+                    'Pseudo-legendary': Pseudo,
+                    'Ultrabeast': UB,
+                    'Regional Form': Reg,
+                    'Mythical': Myth,
+                    'img_name': filename
                     }
             
         
@@ -326,19 +349,26 @@ class PokemonSpider(scrapy.Spider):
                     sp_def_list.append(sp_def_list[1])
                     speed_list.append(speed_list[1])
                     
-            for variant, hp_var, att_var, def_var, sp_att_var, sp_def_var, speed_var, total_var, t1, t2 in zip(variant_list, hp_list, att_list, def_list, sp_att_list, sp_def_list, speed_list, total_list, t1_list, t2_list):
+            for variant, hp_var, att_var, def_var, sp_att_var, sp_def_var, speed_var, total_var, t1, t2, img_url in zip(variant_list, hp_list, att_list, def_list, sp_att_list, sp_def_list, speed_list, total_list, t1_list, t2_list, img_list):
                 
-                group = []
+                Leg = False
+                Myth = False
+                UB = False
+                Para = False
+                Pseudo = False               
+                    
                 
-                if 'Legendary Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
-                    group.append('Legendary')
-                elif 'Mythical Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
-                    group.append('Mythical')
-                elif 'Ultra Beasts' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[3]/a/text()').getall():
-                    group.append('Ultra Beast')
-                elif 'Paradox Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
-                    group.append('Paradox')
-                
+                #Checks if there is any mention of the pokemon being part of these groups and sets them to true
+                if 'Legendary Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall() or 'Legendary' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
+                    Leg = True
+                if 'Mythical Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
+                    Myth = True
+                if 'Ultra Beasts' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[3]/a/text()').getall():
+                    UB = True
+                if 'Paradox Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall() or 'Paradox' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
+                    Para = True
+                if 'pseudo-legendary Pokémon' in response.xpath('/html/body/div[2]/div[1]/div[1]/div[6]/div[4]/div/p[1]/a/text()').getall():
+                    Pseudo = True
                 
                 
                 
@@ -364,11 +394,14 @@ class PokemonSpider(scrapy.Spider):
                     
                     
                 if 'Mega ' in pkm_var:
-                    group.append('Mega')
+                    Mega = True
+                else:
+                    Mega = False
+
                 if any(x in pkm_var for x in regional_forms):
-                    group.append('Regional Form')
-                if len(group)==0:
-                    group.append('Standard')
+                    Reg = True
+                else:
+                    Reg = False
                     
                 
                 hp=hp_var
@@ -378,10 +411,12 @@ class PokemonSpider(scrapy.Spider):
                 sp_def=sp_def_var
                 speed=speed_var
                 total=total_var
-    
+                dex_n=dex_n.replace('#', '')
+                filename = self.gen_filename(dex_n, pkm_var)
+                                
+                
                 if t2=='Unknown':
                     t2=None
-                
                 
                 if gen=='Generation I':
                     gen=1
@@ -401,12 +436,15 @@ class PokemonSpider(scrapy.Spider):
                     gen=8
                 elif gen=='Generation IX':
                     gen=9
-    
-                
-                
+
+
+                yield response.follow(img_url, callback=self.follow_image, meta={'filename': filename})
+
+                    
                 yield {
-                    'Pokedex Number': int(dex_n.replace('#', '')),
-                    'Pokemon': pkm_var.replace('(', '').replace(')', ''),
+                    'Pokedex Number':dex_n,
+                    'Base Pokemon': pkm_name,
+                    'Variant Name': pkm_var,
                     'Type 1': t1,
                     'Type 2': t2,
                     'Total': total,
@@ -417,5 +455,30 @@ class PokemonSpider(scrapy.Spider):
                     'Sp. Def': sp_def,
                     'Speed': speed,
                     'Generation': gen,
-                    'Group': group,
+                    'Mega': Mega,
+                    'Paradox': Para,
+                    'Legendary': Leg,
+                    'Pseudo-legendary': Pseudo,
+                    'Ultrabeast': UB,
+                    'Regional Form': Reg,
+                    'Mythical': Myth,
+                    'img_name': filename
                     }
+
+    def gen_filename(self, dex, var):
+        var = var.replace(':', '').replace('%', '')
+        filename = f'{dex}_{var}.png'
+        return filename
+
+    def follow_image(self, response):
+        filename = response.meta['filename']
+        img_href = response.css('#file > a:nth-child(1)').attrib['href']
+        yield Request('https:'+img_href, callback=self.parse_image, meta={'filename': filename})
+
+    def parse_image(self, response):
+        filename = response.meta['filename']
+
+        image_path = './img/'+filename
+
+        with open(image_path, 'wb') as f:
+            f.write(response.body)
